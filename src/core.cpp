@@ -5,6 +5,7 @@
 #include <lifecycle_msgs/msg/state.hpp>
 #include <lifecycle_msgs/msg/transition.hpp>
 
+#include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/float32.hpp>
 
 namespace GunControllerNodes
@@ -19,6 +20,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunCon
     RCLCPP_INFO(get_logger(), "on configure");
     this->duty_publisher_left_ = this->create_publisher<std_msgs::msg::Float32>("/pico/gun/left/pwm/duty", 10);
     this->duty_publisher_right_ = this->create_publisher<std_msgs::msg::Float32>("/pico/gun/right/pwm/duty", 10);
+    this->duty_subscriber_velocity_ = this->create_subscription<std_msgs::msg::MultiArray>("/pico/gun/velocity", 10, std::bind(&velocity_callback, this, std::placeholders::_1));
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
@@ -45,6 +47,52 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunCon
 {
     RCLCPP_INFO(get_logger(), "on shutdown");
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
+}
+
+#define DIRECTION_MIN -100
+#define DIRECTION_MAX  100
+#define POWER_MIN -100
+#define POWER_MAX  100
+
+float GunControllerNode::direction_limit(float direction)
+{
+    if(direction < DIRECTION_MIN)
+    {
+        direction = DIRECTION_MIN;
+    }
+    else if(direction > DIRECTION_MAX)
+    {
+        direction = DIRECTION_MAX;
+    }
+    return direction;
+}
+
+float GunControllerNode::power_limit(float power)
+{
+    if(power < POWER_MIN)
+    {
+        power = POWER_MIN;
+    }
+    else if(power > POWER_MAX)
+    {
+        power = POWER_MAX;
+    }
+    return power;
+}
+
+void GunControllerNode::velocity_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
+{
+    if(msg->data.size() >= 2)
+    {
+        float direction = direction_limit(msg->data[0]);
+        float power = power_limit(msg->data[1]);
+        target_duty.left  = (power + direction) / (float) (DIRECTION_MAX + POWER_MAX);
+        target_duty.right = (power - direction) / (float) (DIRECTION_MAX + POWER_MAX);
+    }
+    else
+    {
+        RCLCPP_WARN(this->get_logger(), "target_duty expects 2 elements, got %zu", msg->data.size());
+    }
 }
 
 //! 加速度と減速度を考慮
