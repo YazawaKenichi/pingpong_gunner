@@ -8,6 +8,8 @@
 
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/float32.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
+#include <pingpong_msgs/msg/shot_params.hpp>
 
 #define DUTY_ACCEL  10
 #define DUTY_DECCEL 10
@@ -38,19 +40,28 @@ class GunControllerNode : public rclcpp_lifecycle::LifecycleNode
     private:
         void timer_callback();
         void velocity_callback(const std_msgs::msg::Float32MultiArray::SharedPtr);
+        void shot_params_callback(const pingpong_msgs::msg::ShotParams::SharedPtr);
 
         float direction_limit(float);
         float power_limit(float);
         float duty_acceldeccel_limitter(float, float);
+        void set_position();
+        void set_pose();
+        void set_gun();
         void set_duty(gun_duty_t);
 
         rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr duty_publisher_left_;
         rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr duty_publisher_right_;
+        rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr position_publisher_;
+        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr pose_publisher_;
+        rclcpp::Subscription<pingpong_msgs::msg::ShotParams>::SharedPtr shot_params_subscriber_;
         rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr duty_subscriber_velocity_;
         rclcpp::TimerBase::SharedPtr timer_;
 
         gun_duty_t target_duty;
         gun_duty_t now_duty;
+        std_msgs::msg::Float32 position_;
+        geometry_msgs::msg::Vector3 pose_;
 };
 }
 

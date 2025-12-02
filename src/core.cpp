@@ -7,6 +7,8 @@
 
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/float32.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
+#include <pingpong_msgs/msg/shot_params.hpp>
 
 namespace GunControllerNodes
 {
@@ -20,7 +22,10 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunCon
     RCLCPP_INFO(get_logger(), "on configure");
     this->duty_publisher_left_ = this->create_publisher<std_msgs::msg::Float32>("/pico/gun/left/pwm/duty", 10);
     this->duty_publisher_right_ = this->create_publisher<std_msgs::msg::Float32>("/pico/gun/right/pwm/duty", 10);
-    this->duty_subscriber_velocity_ = this->create_subscription<std_msgs::msg::MultiArray>("/pico/gun/velocity", 10, std::bind(&velocity_callback, this, std::placeholders::_1));
+    this->position_publisher_ = this->create_publisher<std_msgs::msg::Float32>("/pico/stepper/position/raw", 10);
+    this->pose_publisher_ = this->create_publisher<geometry_msgs::msg::Vector3>("/pico/pose", 10);
+    // this->duty_subscriber_velocity_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("/pico/gun/velocity", 10, std::bind(&GunControllerNode::velocity_callback, this, std::placeholders::_1));
+    this->shot_params_subscriber_ = this->create_subscription<pingpong_msgs::msg::ShotParams>("/shot_command", 10, std::bind(&GunControllerNode::shot_params_callback, this, std::placeholders::_1));
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
@@ -95,6 +100,16 @@ void GunControllerNode::velocity_callback(const std_msgs::msg::Float32MultiArray
     }
 }
 
+void GunControllerNode::shot_params_callback(const pingpong_msgs::msg::ShotParams::SharedPtr msg)
+{
+    this->position_.data = msg->pos;
+    this->pose_.x = msg->roll_deg;
+    this->pose_.y = msg->pitch_deg;
+    this->pose_.z = msg->yaw_deg;
+    this->target_duty.left = msg->pow_left;
+    this->target_duty.right = msg->pow_right;
+}
+
 //! 加速度と減速度を考慮
 float GunControllerNode::duty_acceldeccel_limitter(float target, float now)
 {
@@ -143,14 +158,34 @@ void GunControllerNode::set_duty(gun_duty_t duty_rate_)
     now_duty.right = duty_rate_.right;
 }
 
-void GunControllerNode::timer_callback()
+void GunControllerNode::set_position()
+{
+    auto msg = std_msgs::msg::Float32();
+    msg = this->position_;
+    this->position_publisher_->publish(msg);
+}
+
+void GunControllerNode::set_pose()
+{
+    auto msg = geometry_msgs::msg::Vector3();
+    msg = this->pose_;
+    this->pose_publisher_->publish(msg);
+}
+
+void GunControllerNode::set_gun()
 {
     gun_duty_t tmp_duty;
-    ////////// target_duty の更新をするプログラムを書いてないのでこのままだと動かない //////////
     tmp_duty.left = this->duty_acceldeccel_limitter(target_duty.left, now_duty.left);
     tmp_duty.right = this->duty_acceldeccel_limitter(target_duty.right, now_duty.right);
 
     GunControllerNode::set_duty(tmp_duty);
+}
+
+void GunControllerNode::timer_callback()
+{
+    set_position();
+    set_pose();
+    set_gun();
 }
 }
 
