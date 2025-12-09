@@ -12,7 +12,7 @@
 
 namespace GunControllerNodes
 {
-GunControllerNode::GunControllerNode() : rclcpp_lifecycle::LifecycleNode("gun_controller_node")
+GunControllerNode::GunControllerNode() : rclcpp_lifecycle::LifecycleNode("gun_controller_node"), duty_accel_(DUTY_ACCEL_DEFAULT), duty_deccel_(DUTY_DECCEL_DEFAULT)
 {
     RCLCPP_INFO(get_logger(), "Gun Controller Node constructed.");
 }
@@ -20,12 +20,20 @@ GunControllerNode::GunControllerNode() : rclcpp_lifecycle::LifecycleNode("gun_co
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_configure(const rclcpp_lifecycle::State & state)
 {
     RCLCPP_INFO(get_logger(), "on configure");
+
+    this->declare_parameter<float>("duty_accel", DUTY_ACCEL_DEFAULT);
+    this->declare_parameter<float>("duty_deccel", DUTY_DECCEL_DEFAULT);
+    this->duty_accel_ = this->get_parameter("duty_accel").as_double();
+    this->duty_accel_ = this->get_parameter("duty_deccel").as_double();
+
     this->duty_publisher_left_ = this->create_publisher<std_msgs::msg::Float32>("/pico/gun/left/pwm/duty", 10);
     this->duty_publisher_right_ = this->create_publisher<std_msgs::msg::Float32>("/pico/gun/right/pwm/duty", 10);
     this->position_publisher_ = this->create_publisher<std_msgs::msg::Float32>("/pico/stepper/position/raw", 10);
     this->pose_publisher_ = this->create_publisher<geometry_msgs::msg::Vector3>("/pico/pose", 10);
-    // this->duty_subscriber_velocity_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("/pico/gun/velocity", 10, std::bind(&GunControllerNode::velocity_callback, this, std::placeholders::_1));
+
+    this->duty_subscriber_velocity_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("/pico/gun/velocity", 10, std::bind(&GunControllerNode::velocity_callback, this, std::placeholders::_1));
     this->shot_params_subscriber_ = this->create_subscription<pingpong_msgs::msg::ShotParams>("/shot_command", 10, std::bind(&GunControllerNode::shot_params_callback, this, std::placeholders::_1));
+
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
@@ -89,8 +97,8 @@ void GunControllerNode::velocity_callback(const std_msgs::msg::Float32MultiArray
 {
     if(msg->data.size() >= 2)
     {
-        float direction = direction_limit(msg->data[0]);
-        float power = power_limit(msg->data[1]);
+        float power = power_limit(msg->data[0]);
+        float direction = direction_limit(msg->data[1]);
         target_duty.left  = (power + direction) / (float) (DIRECTION_MAX + POWER_MAX);
         target_duty.right = (power - direction) / (float) (DIRECTION_MAX + POWER_MAX);
     }
@@ -115,7 +123,7 @@ float GunControllerNode::duty_acceldeccel_limitter(float target, float now)
 {
     if(target - now > 0)
     {
-        float ad = (DUTY_ACCEL * MS2S(TIMER_PERIOD_MS));
+        float ad = (this->duty_accel_ * MS2S(TIMER_PERIOD_MS));
         if(target - now > ad)
         {
             //! 加速度が想定以上の時
@@ -128,7 +136,7 @@ float GunControllerNode::duty_acceldeccel_limitter(float target, float now)
     }
     if(target - now < 0)
     {
-        float ad = (DUTY_DECCEL * MS2S(TIMER_PERIOD_MS));
+        float ad = (this->duty_deccel_ * MS2S(TIMER_PERIOD_MS));
         if(now - target > ad)
         {
             //! 減速度が想定以上の時

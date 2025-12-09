@@ -11,8 +11,8 @@
 #include <geometry_msgs/msg/vector3.hpp>
 #include <pingpong_msgs/msg/shot_params.hpp>
 
-#define DUTY_ACCEL  10
-#define DUTY_DECCEL 10
+#define DUTY_ACCEL_DEFAULT  10
+#define DUTY_DECCEL_DEFAULT 10
 
 #define TIMER_PERIOD_MS 1
 
@@ -62,6 +62,8 @@ class GunControllerNode : public rclcpp_lifecycle::LifecycleNode
         gun_duty_t now_duty;
         std_msgs::msg::Float32 position_;
         geometry_msgs::msg::Vector3 pose_;
+        float duty_accel_;
+        float duty_deccel_;
 };
 }
 

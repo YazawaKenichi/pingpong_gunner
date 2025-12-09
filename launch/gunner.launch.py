@@ -27,15 +27,15 @@ def generate_launch_description():
         ]
     )
 
-    cpp_pingpong_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            os.path.join(
-                get_package_share_directory("cpp_pingpong"),
-                "launch",
-                "pingpong.launch.py"
-            )
-        ])
-    )
+    # cpp_pingpong_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource([
+    #         os.path.join(
+    #             get_package_share_directory("cpp_pingpong"),
+    #             "launch",
+    #             "pingpong.launch.py"
+    #         )
+    #     ])
+    # )
 
     gunner_node = Node(
         package="pingpong_gunner",
@@ -46,7 +46,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         micro_ros_agent_node,
-        cpp_pingpong_launch,
+        # cpp_pingpong_launch,
         gunner_node,
     ])
 

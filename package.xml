@@ -20,7 +20,7 @@
 
   <!-- using launch.py -->
   <exec_depend>ros2launch</exec_depend>
-  <exec_depend>cpp_pingpong</exec_depend>
+  <!-- <exec_depend>cpp_pingpong</exec_depend> -->
   <exec_depend>micro_ros_agent</exec_depend>
 
   <export>
