@@ -26,7 +26,7 @@ source $HOME/pingpong_ws/install/local_setup.bash
 ```
 
 # 実行
-## `micro_ros_agent`, `gunner`, `cpp_pingpong` 全部実行
+## `micro_ros_agent`, `gunner` 全部実行
 
 ```
 ros2 launch pingpong_gunner gunner.launch.py
