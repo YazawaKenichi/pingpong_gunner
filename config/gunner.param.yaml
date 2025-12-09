@@ -1,6 +1,7 @@
-/pingpong_gunner:
+/gun_controller_node:
   ros__parameters:
-    pub_rate: 1.0
+    duty_accel: 1.0
+    duty_deccel: 1.0
 
 # /cpp_pingpong:
 #   ros__parameters:

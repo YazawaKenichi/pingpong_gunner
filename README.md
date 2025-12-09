@@ -40,7 +40,7 @@ ros2 run micro_ros_agent micro_ros_agent serial -b 115200 --dev /dev/ttyACM0 -v6
 
 ### `gunner`
 ```
-ros2 run pingpong_gunner pingpong_gunner_exe
+ros2 run pingpong_gunner pingpong_gunner
 ```
 
 # メモ

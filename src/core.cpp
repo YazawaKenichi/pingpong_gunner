@@ -17,14 +17,15 @@ GunControllerNode::GunControllerNode() : rclcpp_lifecycle::LifecycleNode("gun_co
     RCLCPP_INFO(get_logger(), "Gun Controller Node constructed.");
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_configure(const rclcpp_lifecycle::State & state)
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_configure(const rclcpp_lifecycle::State & /* state */)
 {
     RCLCPP_INFO(get_logger(), "on configure");
 
     this->declare_parameter<float>("duty_accel", DUTY_ACCEL_DEFAULT);
     this->declare_parameter<float>("duty_deccel", DUTY_DECCEL_DEFAULT);
     this->duty_accel_ = this->get_parameter("duty_accel").as_double();
-    this->duty_accel_ = this->get_parameter("duty_deccel").as_double();
+    this->duty_deccel_ = this->get_parameter("duty_deccel").as_double();
+    RCLCPP_INFO(get_logger(), "Parameters: {duty_accel: %f, duty_deccel: %f}", this->duty_accel_, this->duty_deccel_);
 
     this->duty_publisher_left_ = this->create_publisher<std_msgs::msg::Float32>("/pico/gun/left/pwm/duty", 10);
     this->duty_publisher_right_ = this->create_publisher<std_msgs::msg::Float32>("/pico/gun/right/pwm/duty", 10);
@@ -37,26 +38,26 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunCon
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_activate(const rclcpp_lifecycle::State & state)
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_activate(const rclcpp_lifecycle::State & /* state */)
 {
     RCLCPP_INFO(get_logger(), "on activate");
     timer_ = this->create_wall_timer(std::chrono::milliseconds(TIMER_PERIOD_MS), std::bind(&GunControllerNode::timer_callback, this));
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_deactivate(const rclcpp_lifecycle::State & state)
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_deactivate(const rclcpp_lifecycle::State & /* state */)
 {
     RCLCPP_INFO(get_logger(), "on deactivate");
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_cleanup(const rclcpp_lifecycle::State & state)
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_cleanup(const rclcpp_lifecycle::State & /* state */)
 {
     RCLCPP_INFO(get_logger(), "on cleanup");
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
-rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_shutdown(const rclcpp_lifecycle::State & state)
+rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunControllerNode::on_shutdown(const rclcpp_lifecycle::State & /* state */)
 {
     RCLCPP_INFO(get_logger(), "on shutdown");
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
@@ -121,34 +122,37 @@ void GunControllerNode::shot_params_callback(const pingpong_msgs::msg::ShotParam
 //! 加速度と減速度を考慮
 float GunControllerNode::duty_acceldeccel_limitter(float target, float now)
 {
+    float a = (this->duty_accel_ * MS2S(TIMER_PERIOD_MS));
+    float d = (this->duty_deccel_ * MS2S(TIMER_PERIOD_MS));
     if(target - now > 0)
     {
-        float ad = (this->duty_accel_ * MS2S(TIMER_PERIOD_MS));
-        if(target - now > ad)
+        if(target - now > a)
         {
             //! 加速度が想定以上の時
-            return now + ad;
+            return now + a;
         }
         else
         {
             return target;
         }
     }
-    if(target - now < 0)
+    else if(target - now < 0)
     {
-        float ad = (this->duty_deccel_ * MS2S(TIMER_PERIOD_MS));
-        if(now - target > ad)
+        if(now - target > d)
         {
             //! 減速度が想定以上の時
-            return now - ad;
+            return now - d;
         }
         else
         {
             return target;
         }
     }
-    //! target == now のときにここに到達するはず。
-    return now;
+    else
+    {
+        //! target == now のときにここに到達するはず。
+        return now;
+    }
 }
 
 void GunControllerNode::set_duty(gun_duty_t duty_rate_)
@@ -157,13 +161,13 @@ void GunControllerNode::set_duty(gun_duty_t duty_rate_)
     auto message_left = std_msgs::msg::Float32();
     message_left.data = duty_rate_.left;
     this->duty_publisher_left_->publish(message_left);
-    now_duty.left = duty_rate_.left;
 
     //! 右モータのデューティ比をパブリッシュ
     auto message_right = std_msgs::msg::Float32();
     message_right.data = duty_rate_.right;
     this->duty_publisher_right_->publish(message_right);
-    now_duty.right = duty_rate_.right;
+
+    now_duty = duty_rate_;
 }
 
 void GunControllerNode::set_position()

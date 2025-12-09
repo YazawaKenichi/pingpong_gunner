@@ -16,7 +16,7 @@
 
 #define TIMER_PERIOD_MS 1
 
-#define MS2S(X) (X / (float) 1000.0f)
+#define MS2S(X) ((X) / (float) 1000.0f)
 
 typedef struct
 {
