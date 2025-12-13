@@ -29,7 +29,7 @@ def generate_launch_description():
             "serial",
             "-b", "115200",
             "--dev", LaunchConfiguration("serial"),
-            # "-v6"
+            "-v6"
         ]
     )
 
@@ -51,6 +51,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        serial,
         micro_ros_agent_node,
         # cpp_pingpong_launch,
         gunner_node,
