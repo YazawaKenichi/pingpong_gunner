@@ -1,7 +1,7 @@
 /gun_controller_node:
   ros__parameters:
-    duty_accel: 2.5
-    duty_deccel: 2.5
+    duty_accel: 50.0
+    duty_deccel: 50.0
 
 # /cpp_pingpong:
 #   ros__parameters:

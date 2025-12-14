@@ -1,5 +1,4 @@
 #include "pingpong_gunner/core.hpp"
-
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <lifecycle_msgs/msg/state.hpp>
@@ -62,11 +61,6 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunCon
     RCLCPP_INFO(get_logger(), "on shutdown");
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
-
-#define DIRECTION_MIN -100
-#define DIRECTION_MAX  100
-#define POWER_MIN -100
-#define POWER_MAX  100
 
 float GunControllerNode::direction_limit(float direction)
 {
@@ -159,12 +153,13 @@ void GunControllerNode::set_duty(gun_duty_t duty_rate_)
 {
     //! 左モータのデューティ比をパブリッシュ
     auto message_left = std_msgs::msg::Float32();
-    message_left.data = duty_rate_.left;
+    message_left.data = (duty_rate_.left > DUTY_MAX) ? DUTY_MAX : (duty_rate_.left < DUTY_MIN) ? DUTY_MIN : duty_rate_.left;
     this->duty_publisher_left_->publish(message_left);
 
     //! 右モータのデューティ比をパブリッシュ
     auto message_right = std_msgs::msg::Float32();
     message_right.data = duty_rate_.right;
+    message_right.data = (duty_rate_.right > DUTY_MAX) ? DUTY_MAX : (duty_rate_.right < DUTY_MIN) ? DUTY_MIN : duty_rate_.right;
     this->duty_publisher_right_->publish(message_right);
 
     now_duty = duty_rate_;
@@ -180,7 +175,9 @@ void GunControllerNode::set_position()
 void GunControllerNode::set_pose()
 {
     auto msg = geometry_msgs::msg::Vector3();
-    msg = this->pose_;
+    msg.x = RESCALE(this->pose_.x, 180, -180, 180, 0);
+    msg.y = RESCALE(this->pose_.y, 180, -180, 180, 0);
+    msg.z = RESCALE(this->pose_.z, 180, -180, 180, 0);
     this->pose_publisher_->publish(msg);
 }
 

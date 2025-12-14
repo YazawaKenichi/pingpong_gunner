@@ -14,9 +14,17 @@
 #define DUTY_ACCEL_DEFAULT  10
 #define DUTY_DECCEL_DEFAULT 10
 
+#define DIRECTION_MIN -100
+#define DIRECTION_MAX  100
+#define POWER_MIN -100
+#define POWER_MAX  100
+#define DUTY_MIN -40
+#define DUTY_MAX 40
+
 #define TIMER_PERIOD_MS 1
 
 #define MS2S(X) ((X) / (float) 1000.0f)
+#define RESCALE(X, I_MAX, I_MIN, O_MAX, O_MIN) ((O_MAX - O_MIN) * (float) (((X) - I_MIN) / (float) (I_MAX - I_MIN)) + O_MIN)
 
 typedef struct
 {
