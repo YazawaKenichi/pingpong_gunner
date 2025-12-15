@@ -26,22 +26,23 @@ source $HOME/pingpong_ws/install/local_setup.bash
 ```
 
 # 実行
-## `micro_ros_agent`, `gunner` を起動
+## 1. `micro_ros_agent` を起動
 
 ```
-ros2 launch pingpong_gunner gunner.launch.py
+ros2 launch pingpong_gunner agent.launch.py serial:=/dev/ttyACM0
 ```
 
-## 一つづつ実行
-### `micro_ros_agent`
+`serial:=/dev/ttyACM0` は接続する Raspberry Pi Pico のデバイス
+
+## 2. `pingpong_gunner` を起動
 ```
-ros2 run micro_ros_agent micro_ros_agent serial -b 115200 --dev /dev/ttyACM0 -v6
+ros2 run pingpong_gunner pingpong_gunner_exe
 ```
 
-### `gunner`
-```
-ros2 run pingpong_gunner pingpong_gunner
-```
+※ 本当は launch ファイルにまとめたかったけどまとめると何故か通信できない
+
+## 3. 卓球ロボットの回路 （ Raspberry Pi Pico ） に接続
+必ず `micro_ros_agent` を起動したあとに接続すること！
 
 # メモ
 build_depend をいくつか追加したほうが良い？
