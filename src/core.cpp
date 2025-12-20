@@ -168,16 +168,16 @@ void GunControllerNode::set_duty(gun_duty_t duty_rate_)
 void GunControllerNode::set_position()
 {
     auto msg = std_msgs::msg::Float32();
-    msg = this->position_;
+    msg.data = RESCALE(this->position_.data, 0, 2000, 0, 1.205);
     this->position_publisher_->publish(msg);
 }
 
 void GunControllerNode::set_pose()
 {
     auto msg = geometry_msgs::msg::Vector3();
-    msg.x = RESCALE(this->pose_.x, 180, -180, 180, 0);
-    msg.y = RESCALE(this->pose_.y, 180, -180, 180, 0);
-    msg.z = RESCALE(this->pose_.z, 180, -180, 180, 0);
+    msg.x = RESCALE(this->pose_.x, 45, -45, 180, 0);
+    msg.y = RESCALE(this->pose_.y, 45, -45, 90, 0);
+    msg.z = RESCALE(this->pose_.z, 45, -45, 180, 0);
     this->pose_publisher_->publish(msg);
 }
 
