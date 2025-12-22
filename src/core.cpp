@@ -4,6 +4,7 @@
 #include <lifecycle_msgs/msg/state.hpp>
 #include <lifecycle_msgs/msg/transition.hpp>
 
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/float32.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
@@ -33,6 +34,7 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn GunCon
 
     this->duty_subscriber_velocity_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("/pico/gun/velocity", 10, std::bind(&GunControllerNode::velocity_callback, this, std::placeholders::_1));
     this->shot_params_subscriber_ = this->create_subscription<pingpong_msgs::msg::ShotParams>("/shot_command", 10, std::bind(&GunControllerNode::shot_params_callback, this, std::placeholders::_1));
+    this->goal_subscriber_ = this->create_subscription<std_msgs::msg::Bool>("/pico/stepper/goal", 10, std::bind(&GunControllerNode::goal_callback, this, std::placeholders::_1));
 
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
@@ -111,6 +113,16 @@ void GunControllerNode::shot_params_callback(const pingpong_msgs::msg::ShotParam
     this->pose_.z = msg->yaw_deg;
     this->target_duty.left = msg->pow_left;
     this->target_duty.right = msg->pow_right;
+}
+
+void GunControllerNode::goal_callback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+    if(msg->data)
+    {
+        set_position();
+        set_pose();
+        set_gun();
+    }
 }
 
 //! 加速度と減速度を考慮
@@ -192,9 +204,6 @@ void GunControllerNode::set_gun()
 
 void GunControllerNode::timer_callback()
 {
-    set_position();
-    set_pose();
-    set_gun();
 }
 }
 
